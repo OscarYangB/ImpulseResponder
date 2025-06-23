@@ -56,6 +56,14 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    juce::int64 impulseLength = 1;
+    juce::int64 counter = 0;
+    float** impulse = new float* [2];
+    float** samples = new float* [2];
+    
+    //int samplesPerBuffer = 0;
+    //void initConvolution(juce::File& file);
+    //juce::dsp::Convolution convolution = juce::dsp::Convolution();
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ImpulseResponderAudioProcessor)

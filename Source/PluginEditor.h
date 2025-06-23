@@ -33,9 +33,6 @@ private:
     juce::AudioFormatManager formatManager;
 
     juce::FilenameComponent fileSelector = juce::FilenameComponent("", juce::File(), true, false, false, "*.wav", {}, "Select Impulse");
-    
-    juce::int64 impulseLength;
-    float** impulse = new float*[2];
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(ImpulseResponderAudioProcessorEditor)
 };

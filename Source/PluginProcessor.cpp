@@ -9,6 +9,8 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
+using juce::dsp::Convolution;
+
 //==============================================================================
 ImpulseResponderAudioProcessor::ImpulseResponderAudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -22,6 +24,11 @@ ImpulseResponderAudioProcessor::ImpulseResponderAudioProcessor()
                        )
 #endif
 {
+    impulse[0] = new float[1] {0.f};
+    impulse[1] = new float[1] {0.f};
+
+    samples[0] = new float[1] {0.f};
+    samples[1] = new float[1] {0.f};
 }
 
 ImpulseResponderAudioProcessor::~ImpulseResponderAudioProcessor()
@@ -93,6 +100,7 @@ void ImpulseResponderAudioProcessor::changeProgramName (int index, const juce::S
 //==============================================================================
 void ImpulseResponderAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    //samplesPerBuffer = samplesPerBlock;
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
 }
@@ -131,30 +139,33 @@ bool ImpulseResponderAudioProcessor::isBusesLayoutSupported (const BusesLayout& 
 
 void ImpulseResponderAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
     auto totalNumOutputChannels = getTotalNumOutputChannels();
 
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // This is here to avoid people getting screaming feedback
-    // when they first compile a plugin, but obviously you don't need to keep
-    // this code if your algorithm always overwrites all the output channels.
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-    // Make sure to reset the state if your inner loop is processing
-    // the samples and the outer loop is handling the channels.
-    // Alternatively, you can process the samples with the channels
-    // interleaved by keeping the same state.
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
-        auto* channelData = buffer.getWritePointer (channel);
+    float* const* newSamples = buffer.getArrayOfWritePointers();
 
-        // ..do something to the data...
+    
+    //if (convolution.getCurrentIRSize() > 0) {
+    //    convolution.process(buffer);
+    //}
+
+    
+    for (int sample = 0; sample < buffer.getNumSamples(); sample++) {
+        for (int channel = 0; channel < 2; channel++)
+        {
+            float sum = 0;
+            for (int impulseSample = 0; impulseSample < impulseLength; impulseSample++) {
+                sum += impulse[channel][impulseSample] * samples[channel][(impulseSample + counter) % impulseLength];
+            }
+
+            samples[channel][counter] = newSamples[channel][sample];
+            newSamples[channel][sample] = sum;
+        }
+
+        counter = (counter + 1) % impulseLength;
     }
 }
 
@@ -182,6 +193,17 @@ void ImpulseResponderAudioProcessor::setStateInformation (const void* data, int 
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
 }
+
+/*void ImpulseResponderAudioProcessor::initConvolution(juce::File& file)
+{
+    
+    convolution.loadImpulseResponse(file, Convolution::Stereo::yes, Convolution::Trim::yes, 0, Convolution::Normalise::yes);
+    juce::dsp::ProcessSpec processSpec;
+    processSpec.sampleRate = getSampleRate();
+    processSpec.numChannels = 2;
+    processSpec.maximumBlockSize = samplesPerBuffer;
+    convolution.prepare(processSpec);
+}*/
 
 //==============================================================================
 // This creates new instances of the plugin..

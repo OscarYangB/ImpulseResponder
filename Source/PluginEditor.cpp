@@ -21,9 +21,6 @@ ImpulseResponderAudioProcessorEditor::ImpulseResponderAudioProcessorEditor (Impu
     fileSelector.addListener(this);
 
     formatManager.registerBasicFormats();
-
-    impulse[0] = new float[1];
-    impulse[1] = new float[1];
 }
 
 ImpulseResponderAudioProcessorEditor::~ImpulseResponderAudioProcessorEditor()
@@ -54,14 +51,21 @@ void ImpulseResponderAudioProcessorEditor::filenameComponentChanged(juce::Filena
     juce::File file = fileComponentThatHasChanged->getCurrentFile();
     juce::AudioFormatReader* reader = formatManager.createReaderFor(file);
     
-    impulseLength = reader->lengthInSamples;
+    
+    ImpulseResponderAudioProcessor* impulseProcessor = (ImpulseResponderAudioProcessor*)getAudioProcessor();
+    
+    impulseProcessor->impulseLength = reader->lengthInSamples;
 
 
-    delete[] impulse[0];
-    impulse[0] = new float[impulseLength];
+    delete[] impulseProcessor->impulse[0];
+    impulseProcessor->impulse[0] = new float[impulseProcessor->impulseLength] {0.f};
+    delete[] impulseProcessor->samples[0];
+    impulseProcessor->samples[0] = new float[impulseProcessor->impulseLength] {0.f};
 
-    delete[] impulse[1];
-    impulse[1] = new float[impulseLength];
+    delete[] impulseProcessor->impulse[1];
+    impulseProcessor->impulse[1] = new float[impulseProcessor->impulseLength] {0.f};
+    delete impulseProcessor->samples[1];
+    impulseProcessor->samples[1] = new float[impulseProcessor->impulseLength] {0.f};
 
-    reader->read(impulse, 2, 0, impulseLength);
+    reader->read(impulseProcessor->impulse, 2, 0, impulseProcessor->impulseLength);
 }
